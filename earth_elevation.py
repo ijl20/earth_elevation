@@ -84,7 +84,7 @@ class EarthElevation():
         elevation = self.TILES[name].lookup(lat, lon)
         toc=time.perf_counter()
         print(f"lookup time {(toc-tic)*1000:.3f}")
-        return elevation
+        return int(elevation)
 
     def start(self):
         tic=time.perf_counter()
