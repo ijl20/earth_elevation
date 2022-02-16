@@ -74,7 +74,7 @@ class EarthElevation():
         print(f"load time {(t2-t1)*1000:.3f}")
 
     def lookup(self, lat, lon):
-        tic=time.perf_counter()
+        #tic=time.perf_counter()
         # We can hard-code the Tile selection
         name = 'NE'
         if lon < -30.010416772249997:
@@ -82,8 +82,8 @@ class EarthElevation():
         elif lat < -0.00208333333:
             name = 'SE'
         elevation = self.TILES[name].lookup(lat, lon)
-        toc=time.perf_counter()
-        print(f"lookup time {(toc-tic)*1000:.3f}")
+        #toc=time.perf_counter()
+        #print(f"lookup time {(toc-tic)*1000:.3f}")
         return int(elevation)
 
     def start(self):

@@ -1,6 +1,7 @@
 import configparser
 import json
 import os
+import time
 
 from bottle import route, run, request, response, hook
 from earth_elevation import EarthElevation
@@ -19,7 +20,6 @@ parser.read('config.ini')
 HOST = parser.get('server', 'host')
 PORT = parser.getint('server', 'port')
 NUM_WORKERS = parser.getint('server', 'workers')
-DATA_FOLDER = parser.get('server', 'data-folder')
 URL_ENDPOINT = parser.get('server', 'endpoint')
 CERTS_FOLDER = parser.get('server', 'certs-folder')
 CERT_FILE = '%s/cert.crt' % CERTS_FOLDER
@@ -93,29 +93,6 @@ def query_to_locations():
     return [lat_lng_from_location(l) for l in locations.split('|')]
 
 
-def body_to_locations():
-    """
-    Grab a list of locations from the body and turn them into [(lat,lng),(lat,lng),...]
-    :return:
-    """
-    try:
-        locations = request.json.get('locations', None)
-    except Exception:
-        raise InternalException(json.dumps({'error': 'Invalid JSON.'}))
-
-    if not locations:
-        raise InternalException(json.dumps({'error': '"Locations" is required in the body.'}))
-
-    latlng = []
-    for l in locations:
-        try:
-            latlng += [ (l['latitude'],l['longitude']) ]
-        except KeyError:
-            raise InternalException(json.dumps({'error': '"%s" is not in a valid format.' % l}))
-
-    return latlng
-
-
 def do_lookup(get_locations_func):
     """
     Generic method which gets the locations in [(lat,lng),(lat,lng),...] format by calling get_locations_func
@@ -141,16 +118,30 @@ def get_lookup():
     GET method. Uses query_to_locations.
     :return:
     """
-    return do_lookup(query_to_locations)
+    qdict = request.query.decode()
+    try:
+        planner_id = qdict['id']
+    except Exception:
+        response.status = 400
+        response.content_type = 'application/json'
+        return json.dumps({'error': 'Bad request.'})
 
+    try:
+        locations = qdict['locations'] 
+    except Exception:
+        response.status = 400
+        response.content_type = 'application/json'
+        return json.dumps({'error': 'Bad Request'})
 
-@route(URL_ENDPOINT, method=['POST'])
-def post_lookup():
-    """
-    GET method. Uses body_to_locations.
-    :return:
-    """
-    return do_lookup(body_to_locations)
+    client_ip = request.environ.get('HTTP_X_FORWARDED_FOR') or request.environ.get('REMOTE_ADDR')
+    
+    print(f"{planner_id} {time.time()} {client_ip} {request.query_string}")
+
+    tic = time.perf_counter()
+    results = do_lookup(query_to_locations)
+    toc = time.perf_counter()
+    results["query_time"] = str(toc-tic)
+    return results
 
 if os.path.isfile(CERT_FILE) and os.path.isfile(KEY_FILE):
     print('Using HTTPS')
