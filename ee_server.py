@@ -135,11 +135,11 @@ def get_lookup():
 
     client_ip = request.environ.get('HTTP_X_FORWARDED_FOR') or request.environ.get('REMOTE_ADDR')
     
-    print(f"{planner_id} {time.time()} {client_ip} {request.query_string}")
-
     tic = time.perf_counter()
     results = do_lookup(query_to_locations)
     toc = time.perf_counter()
+
+    print(f"{planner_id} {time.time()} {toc-tic:.6f} {client_ip} {request.query_string}")
     results["query_time"] = str(toc-tic)
     return results
 
